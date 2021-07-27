@@ -1,0 +1,38 @@
+import { Request, Response, NextFunction } from 'express';
+import { verify } from 'jsonwebtoken';
+
+import authConfig from '../config/auth';
+
+//so pra mandar o token para o retorno 
+interface TokenPayload{
+    iat: number;
+    exp: number;
+    sub: string;
+}
+
+export default function ensureAuthenticated(request:Request, response:Response, next:NextFunction): void{
+    //validacao do token JWT
+
+    //pegando a informacao do header
+    const authHeader = request.headers.authorization;
+    
+    if(!authHeader){
+        throw new Error('JWT token is missing');
+    }
+
+    //Se o token exixstir
+    //uso  a destruturacao para  pegar o Bearer e depis o token, o type bearer eu n uso
+    const [, token] = authHeader.split(' ');
+    try {
+        const decoded = verify(token, authConfig.jwt.secret);
+        console.log(decoded);
+        const { sub } = decoded as TokenPayload; //preciso forcar que eh
+
+        request.user = {
+            id: sub, //adiciono pra usar nas próximas  requisições.
+        }
+        return next();// quase esqueci de terminar o middleware
+    } catch {
+        throw new Error("Invalid JWT token");
+    }
+}
